@@ -1,18 +1,25 @@
+import streamlit as st
+from flask_login import login_required, current_user
+from .models import Note
 from . import db
-from flask_login import UserMixin
-from sqlalchemy import func
+import json
 
+# Define the Streamlit app
+def main():
+    st.title('My Note Taking App')
+    if st.sidebar.button('Add Note'):
+        note = st.text_input('Enter your note:')
+        if len(note) < 1:
+            st.error('Note is too short!')
+        else:
+            new_note = Note(data=note, user_id=current_user.id)
+            db.session.add(new_note)
+            db.session.commit()
+            st.success('Note added!')
 
-class Note(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    data = db.Column(db.String(10000))
-    date = db.Column(db.DateTime(timezone=True), default=func.now())
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))  # we have foreign key when we have one to many relationhsip, that is one user and many notes
+    notes = Note.query.filter_by(user_id=current_user.id).all()
+    for note in notes:
+        st.write(note.data)
 
-
-class User(db.Model, UserMixin):
-    id = db.Column(db.Integer, primary_key=True)
-    email = db.Column(db.String(150), unique=True)
-    password = db.Column(db.String(150))
-    first_name = db.Column(db.String(150))
-    notes = db.relationship('Note')
+if __name__ == '__main__':
+    main()
